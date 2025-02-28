@@ -1,0 +1,5 @@
+flask
+pillow
+google-generativeai
+huggingface_hub
+gunicorn
