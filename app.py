@@ -24,8 +24,9 @@ def generate_image(prompt, model="jbilcke-hf/flux-dev-panorama-lora-2", retries=
     
     for attempt in range(retries):
         try:
-            with client.text_to_image(prompt, stream=True) as response:
-                return Image.open(io.BytesIO(response.content))
+            response = client.text_to_image(prompt)
+            image = Image.open(io.BytesIO(response))
+            return image
         except Exception as e:
             print(f"Image generation attempt {attempt + 1} failed: {e}")
             if attempt < retries - 1:
