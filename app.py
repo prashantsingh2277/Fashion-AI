@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 import os
 from PIL import Image
 import io
@@ -40,7 +40,7 @@ MODEL_NAME = "tunedModels/outfitsuggestiongenerator-usqw4b296kfe"
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return jsonify({"message": "Flask API is running successfully!"})
 
 @app.route('/generate', methods=['POST'])
 def generate_outfit():
