@@ -20,7 +20,7 @@ def generate_output(model_name, user_input):
 
 # Hugging Face configuration for image generation
 def generate_image(prompt, model="jbilcke-hf/flux-dev-panorama-lora-2", retries=3, delay=5):
-    client = InferenceClient(model, token="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")
+    client = InferenceClient(model, token="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")
     
     for attempt in range(retries):
         try:
