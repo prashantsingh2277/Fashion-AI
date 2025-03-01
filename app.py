@@ -19,8 +19,8 @@ def generate_output(model_name, user_input):
         return f"Text generation error: {e}"
 
 # Hugging Face configuration for image generation
-def generate_image(prompt, model="jbilcke-hf/flux-dev-panorama-lora-2", retries=3, delay=5):
-    client = InferenceClient(model, token="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")
+def generate_image(prompt, model="stabilityai/stable-diffusion-2", retries=3, delay=5):
+    client = InferenceClient(model, token="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")
     
     for attempt in range(retries):
         try:
