@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template
 import os
 from PIL import Image
 import io
@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # Google Generative AI configuration for text generation
 def generate_output(model_name, user_input):
-    api_key = "AIzaSyDBH2_fjAeB64R-4uWbwzlCPXb9r8lXujA" 
+    api_key = "AIzaSyDBH2_fjAeB64R-4uWbwzlCPXb9r8lXujA"
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(model_name=model_name)
 
@@ -24,7 +24,7 @@ def generate_output(model_name, user_input):
 
 # Hugging Face configuration for image generation
 def generate_image(prompt, model="jbilcke-hf/flux-dev-panorama-lora-2", retries=5, delay=10):
-    client = InferenceClient(model, token="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")
+    client = InferenceClient(model, token="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")
 
     for attempt in range(retries):
         try:
@@ -44,54 +44,63 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate_outfit():
-    style_idea = request.form['styleIdea']
-    gender = request.form['gender']
-    ethnicity = request.form['ethnicity']
-    age = request.form['age']
-    skin_color = request.form['skinColor']
-    season = request.form['season']
-    accessories = request.form['accessories']
-    occasion = request.form['occasion']
+    try:
+        # Get JSON data from request
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON data"}), 400
 
-    # Prepare prompt based on gender
-    if accessories == "1":
-        accessories = ""
-    else:
-        accessories = "no"
+        # Extract fields
+        style_idea = data.get("styleIdea", "")
+        gender = data.get("gender", "1")  # Default: male
+        ethnicity = data.get("ethnicity", "")
+        age = data.get("age", "")
+        skin_color = data.get("skinColor", "")
+        season = data.get("season", "")
+        accessories = data.get("accessories", "1")  # 1 = with accessories, 0 = no accessories
+        occasion = data.get("occasion", "")
 
-    if gender == "1":
-        gender = "male"
-        prompt = f"a complete {ethnicity} attire for male of age {age} skin color {skin_color} to be worn in {season} season with {accessories} accessories to be worn on {occasion} occasion considering the design idea {style_idea}"
-    else:
-        gender = "female"
-        prompt = f"a complete {ethnicity} attire for female of age {age} skin color {skin_color} to be worn in {season} season with {accessories} accessories to be worn on {occasion} occasion considering the design idea {style_idea}"
+        # Ensure required fields are provided
+        required_fields = ["styleIdea", "gender", "ethnicity", "age", "skinColor", "season", "accessories", "occasion"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    # Generate text description using Google Generative AI
-    text_output = generate_output(MODEL_NAME, prompt)
+        # Process gender & accessories input
+        accessories = "" if accessories == "1" else "no"
+        gender_text = "male" if gender == "1" else "female"
 
-    # Prepare image prompt
-    if gender == "male":
-        image_prompt = f"Full body image of a {skin_color} skinned male model of age {age} wearing {text_output} facing the camera"
-    else:
-        image_prompt = f"Full body image of a {skin_color} skinned female model of age {age} wearing {text_output} facing the camera"
+        # Generate text prompt
+        prompt = f"a complete {ethnicity} attire for {gender_text} of age {age} skin color {skin_color} to be worn in {season} season with {accessories} accessories to be worn on {occasion} occasion considering the design idea {style_idea}"
 
-    # Generate image using Hugging Face InferenceClient
-    image = generate_image(image_prompt)
+        # Generate text description using Google Generative AI
+        text_output = generate_output(MODEL_NAME, prompt)
 
-    # Save image temporarily and return URL
-    # Note: The image returned by InferenceClient is likely a PIL Image or bytes; assuming it's a PIL Image for consistency
-    img_byte_arr = io.BytesIO()
-    image.save(img_byte_arr, format='PNG')
-    img_byte_arr = img_byte_arr.getvalue()
-    image_path = 'static/generated/outfit.png'
-    os.makedirs(os.path.dirname(image_path), exist_ok=True)
-    with open(image_path, 'wb') as f:
-        f.write(img_byte_arr)
+        # Prepare image prompt
+        image_prompt = f"Full body image of a {skin_color} skinned {gender_text} model of age {age} wearing {text_output} facing the camera"
 
-    return jsonify({
-        'image': f'/static/generated/outfit.png',
-        'text': text_output
-    })
+        # Generate image using Hugging Face InferenceClient
+        image = generate_image(image_prompt)
+
+        # Save image temporarily
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()
+        
+        image_path = 'static/generated/outfit.png'
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+
+        with open(image_path, 'wb') as f:
+            f.write(img_byte_arr)
+
+        # Return full URL of the image
+        image_url = request.host_url + 'static/generated/outfit.png'
+
+        return jsonify({'image': image_url, 'text': text_output})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port, debug=True)
