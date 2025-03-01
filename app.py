@@ -25,7 +25,8 @@ def generate_image(prompt, model="stabilityai/stable-diffusion-2", retries=3, de
     for attempt in range(retries):
         try:
             response = client.text_to_image(prompt)
-            image = Image.open(io.BytesIO(response))
+            img_bytes = io.BytesIO(response)
+            image = Image.open(img_bytes)
             return image
         except Exception as e:
             print(f"Image generation attempt {attempt + 1} failed: {e}")
